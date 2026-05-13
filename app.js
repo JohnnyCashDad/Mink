@@ -94,9 +94,11 @@ function emptyState(title, sub, icon = 'sun') {
 }
 
 // ── Task row ──────────────────────────────────────────────────────────────────
-function taskRow(task, projectName = '', ctx = '') {
+function taskRow(task, projectName = '', ctx = '', tagNames = []) {
   const rightLabel = (ctx === 'upcoming' || ctx === 'someday') ? 'Today' : 'Someday';
   const rightColor = (ctx === 'upcoming' || ctx === 'someday') ? 'var(--accent)' : '#6b7280';
+  const tagChips = tagNames.length
+    ? `<div class="row-tags">${tagNames.map(n => `<span class="row-tag">${esc(n)}</span>`).join('')}</div>` : '';
   return `
 <li class="task-row" data-id="${task.id}" data-ctx="${ctx}">
   <div class="swipe-action action-delete">Delete</div>
@@ -106,10 +108,11 @@ function taskRow(task, projectName = '', ctx = '') {
     <button class="task-checkbox ${task.isComplete ? 'checked' : ''}"
             data-action="toggle" data-id="${task.id}"
             aria-label="${task.isComplete ? 'Mark incomplete' : 'Mark complete'}"></button>
-    <div class="task-body">
+    <div class="task-body" data-action="edit-task" data-id="${task.id}">
       <span class="task-title ${task.isComplete ? 'done' : ''}">${esc(task.title)}</span>
       ${task.isRolledOver && !task.isComplete ? '<span class="rolled-tag">rolled over</span>' : ''}
       ${projectName ? `<span class="task-project">${esc(projectName)}</span>` : ''}
+      ${tagChips}
     </div>
   </div>
 </li>`;
@@ -168,8 +171,9 @@ async function performRollover() {
 async function renderToday() {
   const content = document.getElementById('content');
   const today   = todayStr();
-  const [allTasks, allProjects] = await Promise.all([Tasks.all(), Projects.all()]);
+  const [allTasks, allProjects, allTags] = await Promise.all([Tasks.all(), Projects.all(), Tags.all()]);
   const projMap = Object.fromEntries(allProjects.map(p => [p.id, p.name]));
+  const tagMap  = Object.fromEntries(allTags.map(t => [t.id, t.name]));
 
   const todayTasks = allTasks.filter(t => t.scheduledFor === today);
   const rolledOver = sortByPriority(todayTasks.filter(t => !t.isComplete &&  t.isRolledOver));
@@ -181,17 +185,18 @@ async function renderToday() {
     return;
   }
 
+  const tn = t => (t.tagIds||[]).map(id => tagMap[id]).filter(Boolean);
   let html = '';
   if (rolledOver.length) {
     html += sectionHeader('Rolled Over');
-    html += `<ul class="task-list">${rolledOver.map(t => taskRow(t, projMap[t.projectId]||'', 'today')).join('')}</ul>`;
+    html += `<ul class="task-list">${rolledOver.map(t => taskRow(t, projMap[t.projectId]||'', 'today', tn(t))).join('')}</ul>`;
   }
   if (incomplete.length) {
     html += sectionHeader('Today');
-    html += `<ul class="task-list">${incomplete.map(t => taskRow(t, projMap[t.projectId]||'', 'today')).join('')}</ul>`;
+    html += `<ul class="task-list">${incomplete.map(t => taskRow(t, projMap[t.projectId]||'', 'today', tn(t))).join('')}</ul>`;
   }
   if (completed.length) {
-    html += `<details class="done-section"><summary class="section-hd">Completed (${completed.length})</summary><ul class="task-list">${completed.map(t => taskRow(t, projMap[t.projectId]||'', 'today')).join('')}</ul></details>`;
+    html += `<details class="done-section"><summary class="section-hd">Completed (${completed.length})</summary><ul class="task-list">${completed.map(t => taskRow(t, projMap[t.projectId]||'', 'today', tn(t))).join('')}</ul></details>`;
   }
   content.innerHTML = html;
   content.querySelectorAll('.task-row').forEach(initRowSwipe);
@@ -206,8 +211,9 @@ async function renderUpcoming() {
   const tomorrow  = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
   const tomorrowStr = tomorrow.toISOString().slice(0, 10);
 
-  const [allTasks, allProjects] = await Promise.all([Tasks.all(), Projects.all()]);
+  const [allTasks, allProjects, allTags] = await Promise.all([Tasks.all(), Projects.all(), Tags.all()]);
   const projMap = Object.fromEntries(allProjects.map(p => [p.id, p.name]));
+  const tagMap  = Object.fromEntries(allTags.map(t => [t.id, t.name]));
   const upcoming = allTasks.filter(t => !t.isComplete && !isSomeday(t) && t.scheduledFor > today && t.scheduledFor < cutoffStr);
 
   if (!upcoming.length) {
@@ -218,13 +224,14 @@ async function renderUpcoming() {
   const groups = {};
   upcoming.forEach(t => { (groups[t.scheduledFor] ??= []).push(t); });
 
+  const tn = t => (t.tagIds||[]).map(id => tagMap[id]).filter(Boolean);
   let html = '';
   Object.keys(groups).sort().forEach(ds => {
     const label = ds === tomorrowStr
       ? 'Tomorrow'
       : new Date(ds + 'T00:00:00').toLocaleDateString(undefined, { weekday:'long', month:'long', day:'numeric' });
     html += sectionHeader(label);
-    html += `<ul class="task-list">${sortByPriority(groups[ds]).map(t => taskRow(t, projMap[t.projectId]||'', 'upcoming')).join('')}</ul>`;
+    html += `<ul class="task-list">${sortByPriority(groups[ds]).map(t => taskRow(t, projMap[t.projectId]||'', 'upcoming', tn(t))).join('')}</ul>`;
   });
   content.innerHTML = html;
   content.querySelectorAll('.task-row').forEach(initRowSwipe);
@@ -295,6 +302,8 @@ function renderNewProjectForm(content) {
 async function renderProjectDetail(id) {
   const content = document.getElementById('content');
   const [project, allTasks, allProjects, allTags] = await Promise.all([Projects.get(id), Tasks.all(), Projects.all(), Tags.all()]);
+  const tagMap = Object.fromEntries(allTags.map(t => [t.id, t.name]));
+  const tn = t => (t.tagIds||[]).map(id => tagMap[id]).filter(Boolean);
   if (!project) { activeProjectId = null; await renderProjects(); return; }
 
   const projTasks = allTasks.filter(t => t.projectId === id);
@@ -311,8 +320,8 @@ async function renderProjectDetail(id) {
   if (!open.length && !done.length) {
     html += emptyState('No tasks yet', 'Tap + to add one', 'sun');
   } else {
-    if (open.length) html += sectionHeader('Open') + `<ul class="task-list">${open.map(t => taskRow(t,'','project')).join('')}</ul>`;
-    if (done.length) html += `<details class="done-section"><summary class="section-hd">Done (${done.length})</summary><ul class="task-list">${done.map(t => taskRow(t,'','project')).join('')}</ul></details>`;
+    if (open.length) html += sectionHeader('Open') + `<ul class="task-list">${open.map(t => taskRow(t,'','project',tn(t))).join('')}</ul>`;
+    if (done.length) html += `<details class="done-section"><summary class="section-hd">Done (${done.length})</summary><ul class="task-list">${done.map(t => taskRow(t,'','project',tn(t))).join('')}</ul></details>`;
   }
 
   // Tags management
@@ -341,23 +350,43 @@ async function renderProjectDetail(id) {
 // ── Step 9b: Someday view ─────────────────────────────────────────────────────
 async function renderSomeday() {
   const content = document.getElementById('content');
-  const [allTasks, allProjects] = await Promise.all([Tasks.all(), Projects.all()]);
+  const [allTasks, allProjects, allTags] = await Promise.all([Tasks.all(), Projects.all(), Tags.all()]);
   const projMap = Object.fromEntries(allProjects.map(p => [p.id, p.name]));
+  const tagMap  = Object.fromEntries(allTags.map(t => [t.id, t.name]));
   const someday = sortByPriority(allTasks.filter(t => !t.isComplete && isSomeday(t)));
 
   if (!someday.length) {
     content.innerHTML = emptyState('Backlog is clear', 'Tasks parked for someday appear here', 'inbox');
     return;
   }
-  content.innerHTML = `<ul class="task-list">${someday.map(t => taskRow(t, projMap[t.projectId]||'', 'someday')).join('')}</ul>`;
+  const tn = t => (t.tagIds||[]).map(id => tagMap[id]).filter(Boolean);
+  content.innerHTML = `<ul class="task-list">${someday.map(t => taskRow(t, projMap[t.projectId]||'', 'someday', tn(t))).join('')}</ul>`;
   content.querySelectorAll('.task-row').forEach(initRowSwipe);
 }
 
 // ── Step 6: Capture modal ─────────────────────────────────────────────────────
-const capture = { title:'', priority:'none', isSomeday:false, hasDueDate:false, dueDate:'', projectId:null, tagIds:[] };
+const capture = { title:'', priority:'none', isSomeday:false, hasDueDate:false, dueDate:'', projectId:null, tagIds:[], editingId:null };
 
 function openCapture({ asSomeday = false, projectId = null } = {}) {
-  Object.assign(capture, { title:'', priority:'none', isSomeday:asSomeday, hasDueDate:false, dueDate:todayStr(), projectId, tagIds:[] });
+  Object.assign(capture, { editingId:null, title:'', priority:'none', isSomeday:asSomeday, hasDueDate:false, dueDate:todayStr(), projectId, tagIds:[] });
+  document.getElementById('capture-overlay').classList.add('open');
+  document.getElementById('capture-sheet').classList.add('open');
+  renderCaptureSheet();
+}
+
+async function openEdit(id) {
+  const task = await Tasks.get(id);
+  if (!task) return;
+  Object.assign(capture, {
+    editingId: id,
+    title:      task.title,
+    priority:   task.priority,
+    isSomeday:  isSomeday(task),
+    hasDueDate: !!task.dueDate,
+    dueDate:    task.dueDate || todayStr(),
+    projectId:  task.projectId,
+    tagIds:     [...(task.tagIds || [])],
+  });
   document.getElementById('capture-overlay').classList.add('open');
   document.getElementById('capture-sheet').classList.add('open');
   renderCaptureSheet();
@@ -397,7 +426,7 @@ function buildCaptureHTML(allProjects, allTags) {
 <div class="sheet-handle"></div>
 <div class="sheet-header">
   <button class="sheet-cancel" id="capture-cancel">Cancel</button>
-  <span class="sheet-title">New Task</span>
+  <span class="sheet-title">${capture.editingId ? 'Edit Task' : 'New Task'}</span>
 </div>
 <div class="sheet-body">
   <div class="capture-title-row">
@@ -434,7 +463,7 @@ function buildCaptureHTML(allProjects, allTags) {
   <div class="capture-tags">${tagChips}</div>` : ''}
 </div>
 <div class="sheet-footer">
-  <button class="add-task-btn" id="add-task-btn"${!capture.title.trim()?' disabled':''}>Add Task</button>
+  <button class="add-task-btn" id="add-task-btn"${!capture.title.trim()?' disabled':''}>${capture.editingId ? 'Save Changes' : 'Add Task'}</button>
 </div>`;
 }
 
@@ -497,12 +526,18 @@ async function saveTask() {
   else if (capture.hasDueDate && capture.dueDate) scheduledFor = capture.dueDate;
   else                                            scheduledFor = todayStr();
 
-  await Tasks.add(Tasks.create({
+  const patch = {
     title, priority: capture.priority, scheduledFor,
     dueDate:   (capture.isSomeday || !capture.hasDueDate) ? null : capture.dueDate,
     projectId: capture.projectId,
     tagIds:    [...capture.tagIds],
-  }));
+  };
+
+  if (capture.editingId) {
+    await Tasks.update(capture.editingId, patch);
+  } else {
+    await Tasks.add(Tasks.create(patch));
+  }
   closeCapture();
   renderView();
 }
@@ -651,6 +686,7 @@ document.getElementById('content').addEventListener('click', async e => {
   const { action, id } = el.dataset;
 
   if      (action === 'toggle')        { toggleTask(id); }
+  else if (action === 'edit-task')     { openEdit(id); }
   else if (action === 'open-project')  { activeProjectId = id; renderView(); }
   else if (action === 'back-to-projects') { activeProjectId = null; renderView(); }
 

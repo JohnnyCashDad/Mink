@@ -190,6 +190,20 @@ body {
   margin-top: 2px;
 }
 
+.row-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+.row-tag {
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: var(--divider);
+  color: var(--secondary);
+}
+
 .rolled-tag {
   display: inline-block;
   font-size: 11px;
