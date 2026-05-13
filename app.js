@@ -559,9 +559,11 @@ function attachMicButton() {
     btn.classList.add('recording');
   }
 
-  btn.addEventListener('pointerdown',  e => { e.preventDefault(); startVoice(); });
-  btn.addEventListener('pointerup',    e => { e.preventDefault(); speech.stop(); });
-  btn.addEventListener('pointerleave', () => { if (speech.recording) speech.stop(); });
+  btn.addEventListener('touchstart',  e => { e.preventDefault(); startVoice(); }, { passive: false });
+  btn.addEventListener('touchend',    e => { e.preventDefault(); speech.stop(); }, { passive: false });
+  btn.addEventListener('touchcancel', e => { e.preventDefault(); speech.stop(); }, { passive: false });
+  btn.addEventListener('mousedown',   e => { e.preventDefault(); startVoice(); });
+  btn.addEventListener('mouseup',     e => { e.preventDefault(); speech.stop(); });
 }
 
 // ── Step 11: Notifications ────────────────────────────────────────────────────
