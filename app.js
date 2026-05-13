@@ -217,19 +217,17 @@ async function renderToday() {
 // ── Step 8: Upcoming view ─────────────────────────────────────────────────────
 async function renderUpcoming() {
   const content = document.getElementById('content');
-  const today   = todayStr();
-  const cutoff  = new Date(); cutoff.setDate(cutoff.getDate() + 8);
-  const cutoffStr = cutoff.toISOString().slice(0, 10);
-  const tomorrow  = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
+  const today      = todayStr();
+  const tomorrow   = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
   const tomorrowStr = tomorrow.toISOString().slice(0, 10);
 
   const [allTasks, allProjects, allTags] = await Promise.all([Tasks.all(), Projects.all(), Tags.all()]);
   const projMap = Object.fromEntries(allProjects.map(p => [p.id, p.name]));
   const tagMap  = Object.fromEntries(allTags.map(t => [t.id, t.name]));
-  const upcoming = allTasks.filter(t => !t.isComplete && !isSomeday(t) && t.scheduledFor > today && t.scheduledFor < cutoffStr);
+  const upcoming = allTasks.filter(t => !t.isComplete && !isSomeday(t) && t.scheduledFor > today);
 
   if (!upcoming.length) {
-    content.innerHTML = emptyState('Nothing coming up', 'Tasks due in the next 7 days appear here', 'calendar');
+    content.innerHTML = emptyState('Nothing coming up', 'Future tasks appear here', 'calendar');
     return;
   }
 
