@@ -515,9 +515,9 @@ class Speech {
       this.transcript = t;
       if (this.onUpdate) this.onUpdate(t);
     };
-    this.rec.onerror = () => this._done();
+    this.rec.onerror = e => { alert('Speech error: ' + e.error); this._done(); };
     this.rec.onend   = () => this._done();
-    try { this.rec.start(); } catch(e) { this.recording = false; }
+    try { this.rec.start(); } catch(e) { alert('Speech start failed: ' + e.message); this.recording = false; }
   }
   stop() { if (this.recording) try { this.rec.stop(); } catch(e) {} }
   _done() {
@@ -534,9 +534,10 @@ function attachMicButton() {
 
   function startVoice() {
     if (!speech.available) {
-      alert('Speech recognition unavailable.\nOn iPhone use Safari; on desktop use Chrome.');
+      alert('Speech recognition not available.\nbrowser: ' + navigator.userAgent.slice(0,80));
       return;
     }
+    alert('Mic tapped — starting...');
     before = (document.getElementById('capture-title')?.value || '').trimEnd();
     speech.onUpdate = text => {
       const el = document.getElementById('capture-title');
