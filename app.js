@@ -93,6 +93,17 @@ function emptyState(title, sub, icon = 'sun') {
   return `<div class="empty-state">${EMPTY_ICONS[icon]}<p class="empty-title">${esc(title)}</p><p class="empty-sub">${esc(sub)}</p></div>`;
 }
 
+function formatDueDate(dateStr) {
+  const today = todayStr();
+  const d = new Date(dateStr + 'T00:00:00');
+  const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowStr = tomorrow.toISOString().slice(0, 10);
+  if (dateStr < today)        return { label: `Overdue · ${d.toLocaleDateString(undefined,{month:'short',day:'numeric'})}`, overdue: true };
+  if (dateStr === today)      return { label: 'Due today', overdue: false };
+  if (dateStr === tomorrowStr) return { label: 'Due tomorrow', overdue: false };
+  return { label: `Due ${d.toLocaleDateString(undefined,{month:'short',day:'numeric'})}`, overdue: false };
+}
+
 // ── Task row ──────────────────────────────────────────────────────────────────
 function taskRow(task, projectName = '', ctx = '', tagNames = []) {
   const rightLabel = (ctx === 'upcoming' || ctx === 'someday') ? 'Today' : 'Someday';
@@ -111,6 +122,7 @@ function taskRow(task, projectName = '', ctx = '', tagNames = []) {
     <div class="task-body" data-action="edit-task" data-id="${task.id}">
       <span class="task-title ${task.isComplete ? 'done' : ''}">${esc(task.title)}</span>
       ${task.isRolledOver && !task.isComplete ? '<span class="rolled-tag">rolled over</span>' : ''}
+      ${(() => { if (!task.dueDate || task.isComplete) return ''; const f = formatDueDate(task.dueDate); return `<span class="task-due${f.overdue?' overdue':''}">${f.label}</span>`; })()}
       ${projectName ? `<span class="task-project">${esc(projectName)}</span>` : ''}
       ${tagChips}
     </div>
@@ -274,7 +286,7 @@ function renderNewProjectForm(content) {
   <div class="field-label" style="margin-top:16px">Color</div>
   <div class="swatch-row">${PROJECT_COLORS.map(c => `<button class="color-swatch ${c===newProjectDraft.colorHex?'active':''}" data-color="${c}" style="background:${c}"></button>`).join('')}</div>
   <div class="field-label" style="margin-top:12px">Icon</div>
-  <div class="icon-row">${PROJECT_ICONS.map(i => `<button class="icon-opt ${i===newProjectDraft.icon?'active':''}" data-icon="${esc(i)}">${i}</button>`).join('')}</div>
+  <div class="icon-row">${PROJECT_ICONS.map((i, idx) => `<button class="icon-opt ${i===newProjectDraft.icon?'active':''}" data-icon-idx="${idx}">${i}</button>`).join('')}</div>
   <div class="new-proj-actions">
     <button class="btn-cancel" data-action="cancel-new-project">Cancel</button>
     <button class="btn-save"   data-action="save-new-project">Create</button>
@@ -293,7 +305,7 @@ function renderNewProjectForm(content) {
 
   document.querySelectorAll('.new-proj-form .icon-opt').forEach(o => {
     o.addEventListener('click', () => {
-      newProjectDraft.icon = o.dataset.icon;
+      newProjectDraft.icon = PROJECT_ICONS[parseInt(o.dataset.iconIdx)];
       document.querySelectorAll('.new-proj-form .icon-opt').forEach(x => x.classList.toggle('active', x === o));
     });
   });

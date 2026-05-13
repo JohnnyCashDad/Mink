@@ -190,6 +190,17 @@ body {
   margin-top: 2px;
 }
 
+.task-due {
+  display: block;
+  font-size: 11px;
+  color: var(--secondary);
+  margin-top: 2px;
+}
+.task-due.overdue {
+  color: var(--pri-high);
+  font-weight: 500;
+}
+
 .row-tags {
   display: flex;
   flex-wrap: wrap;
