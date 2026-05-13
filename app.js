@@ -560,6 +560,7 @@ function attachMicButton() {
     btn.classList.add('recording');
   }
 
+  btn.addEventListener('click', e => { e.preventDefault(); startVoice(); });
   btn.addEventListener('touchstart',  e => { e.preventDefault(); startVoice(); }, { passive: false });
   btn.addEventListener('touchend',    e => { e.preventDefault(); speech.stop(); }, { passive: false });
   btn.addEventListener('touchcancel', e => { e.preventDefault(); speech.stop(); }, { passive: false });
