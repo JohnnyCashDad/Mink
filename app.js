@@ -632,6 +632,20 @@ function switchTab(tab) {
 
 // ── Event delegation ──────────────────────────────────────────────────────────
 document.getElementById('content').addEventListener('click', async e => {
+  // Color swatches and icon picker have no data-action — handle before early return
+  const swatch = e.target.closest('.new-proj-form .color-swatch');
+  if (swatch?.dataset.color) {
+    newProjectDraft.colorHex = swatch.dataset.color;
+    document.querySelectorAll('.new-proj-form .color-swatch').forEach(s => s.classList.toggle('active', s === swatch));
+    return;
+  }
+  const iconOpt = e.target.closest('.new-proj-form .icon-opt');
+  if (iconOpt?.dataset.icon) {
+    newProjectDraft.icon = iconOpt.dataset.icon;
+    document.querySelectorAll('.new-proj-form .icon-opt').forEach(o => o.classList.toggle('active', o === iconOpt));
+    return;
+  }
+
   const el = e.target.closest('[data-action]');
   if (!el) return;
   const { action, id } = el.dataset;
@@ -695,17 +709,6 @@ document.getElementById('content').addEventListener('click', async e => {
     });
   }
 
-  // New project form: color swatches & icon picker
-  const swatch = e.target.closest('.new-proj-form .color-swatch');
-  if (swatch?.dataset.color) {
-    newProjectDraft.colorHex = swatch.dataset.color;
-    document.querySelectorAll('.new-proj-form .color-swatch').forEach(s => s.classList.toggle('active', s === swatch));
-  }
-  const iconOpt = e.target.closest('.new-proj-form .icon-opt');
-  if (iconOpt?.dataset.icon) {
-    newProjectDraft.icon = iconOpt.dataset.icon;
-    document.querySelectorAll('.new-proj-form .icon-opt').forEach(o => o.classList.toggle('active', o === iconOpt));
-  }
 });
 
 document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
