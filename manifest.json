@@ -1,12 +1,12 @@
 {
   "name": "Mink",
   "short_name": "Mink",
-  "description": "Capture your thoughts and tasks",
-  "start_url": ".",
+  "description": "Capture thoughts and tasks, effortlessly",
+  "start_url": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#FFFFFF",
-  "theme_color": "#1D9E75",
+  "background_color": "#0E1512",
+  "theme_color": "#0E1512",
   "icons": [
     {
       "src": "icon.svg",

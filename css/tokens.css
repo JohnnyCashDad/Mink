@@ -1,0 +1,96 @@
+/* ── Mink Design Tokens ─────────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=DM+Serif+Display:ital@0;1&display=swap');
+
+:root {
+  /* Brand */
+  --accent:          #1D9E75;
+  --accent-dim:      #17705A;
+  --accent-glow:     rgba(29,158,117,0.35);
+
+  /* Backgrounds */
+  --bg-base:         #0E1512;
+  --bg-card:         #141F1A;
+  --bg-elevated:     #1A2920;
+  --bg-overlay:      rgba(14,21,18,0.85);
+
+  /* Borders */
+  --border-subtle:   #1A2920;
+  --border-default:  #1E2B24;
+  --border-strong:   #253B2E;
+
+  /* Text */
+  --text-primary:    #E8F0EB;
+  --text-secondary:  #6B8C7A;
+  --text-tertiary:   #2E4A3A;
+  --text-inverse:    #0E1512;
+
+  /* Priority */
+  --pri-high:        #E24B4A;
+  --pri-med:         #EF9F27;
+  --pri-low:         #2E4A3A;
+
+  /* Semantic chips */
+  --chip-proj-bg:    #1A2133;
+  --chip-proj-text:  #6B8FC4;
+  --chip-proj-border:#1E2B44;
+  --chip-due-bg:     #1F1A10;
+  --chip-due-text:   #9B7A2E;
+  --chip-due-border: #2B2210;
+  --chip-over-bg:    #1F1010;
+  --chip-over-text:  #9B3A3A;
+  --chip-over-border:#2B1010;
+  --chip-tag-bg:     #101A14;
+  --chip-tag-text:   #3D9E72;
+  --chip-tag-border: #152010;
+  --chip-roll-bg:    #181818;
+  --chip-roll-text:  #4A6357;
+  --chip-roll-border:#1E2420;
+
+  /* Spacing */
+  --space-xs:   4px;
+  --space-sm:   8px;
+  --space-md:   12px;
+  --space-lg:   16px;
+  --space-xl:   20px;
+  --space-2xl:  28px;
+
+  /* Radius */
+  --radius-sm:   8px;
+  --radius-md:   12px;
+  --radius-lg:   14px;
+  --radius-xl:   18px;
+  --radius-pill: 999px;
+
+  /* Type */
+  --font-sans:   'DM Sans', system-ui, sans-serif;
+  --font-serif:  'DM Serif Display', Georgia, serif;
+
+  /* Layout */
+  --tab-h:       58px;
+  --safe-b:      env(safe-area-inset-bottom, 0px);
+  --safe-t:      env(safe-area-inset-top, 0px);
+  --max-w:       430px;
+}
+
+/* ── Reset ──────────────────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg-base);
+  font-family: var(--font-sans);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button { font-family: var(--font-sans); cursor: pointer; }
+input, select, textarea { font-family: var(--font-sans); }
+::-webkit-scrollbar { display: none; }
+* { scrollbar-width: none; }
