@@ -1176,3 +1176,129 @@ input[type="checkbox"].ios-chk:checked::after {
   cursor: default;
 }
 .cap-submit-btn:not(:disabled):active { transform: scale(0.98); }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SUBTASK EXPAND DRAWER
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Progress bar + count row on task card */
+.sub-summary {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 7px;
+}
+.sub-bar-wrap {
+  flex: 1;
+  height: 3px;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+.sub-bar-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: var(--radius-pill);
+  transition: width 0.3s cubic-bezier(0.4,0,0.2,1);
+}
+.sub-count {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  font-weight: 600;
+  white-space: nowrap;
+  transition: color 0.2s;
+}
+.sub-count.sub-count-done { color: var(--accent); }
+
+/* Expand chevron */
+.sub-expand-chev {
+  font-size: 14px;
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+  transition: transform 0.22s cubic-bezier(0.4,0,0.2,1), color 0.18s;
+}
+.task-card.sub-expanded .sub-expand-chev {
+  transform: rotate(180deg);
+  color: var(--text-secondary);
+}
+
+/* Make task-inner feel tappable on expandable cards */
+.task-card[data-expandable] .task-inner {
+  cursor: pointer;
+}
+.task-card[data-expandable].sub-expanded {
+  border-color: var(--border-strong);
+}
+
+/* Drawer — slides open */
+.sub-drawer {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.28s cubic-bezier(0.4,0,0.2,1);
+  background: var(--bg-base);
+  border-top: 0px solid var(--border-subtle);
+}
+.task-card.sub-expanded .sub-drawer {
+  max-height: 600px;
+  border-top-width: 1px;
+}
+
+.sub-drawer-inner {
+  padding: 8px 13px 12px;
+}
+
+/* Individual subtask row */
+.sub-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--border-subtle);
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.sub-row:last-child { border-bottom: none; }
+.sub-row:active { opacity: 0.7; }
+
+/* Subtask checkbox */
+.sub-chk {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1.5px solid var(--text-tertiary);
+  background: none;
+  flex-shrink: 0;
+  position: relative;
+  transition: background 0.18s, border-color 0.18s;
+  padding: 0;
+  pointer-events: none;
+}
+.sub-chk.sub-chk-done {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.sub-chk.sub-chk-done::after {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 1px;
+  width: 6px;
+  height: 9px;
+  border: 1.5px solid var(--text-inverse);
+  border-top: none;
+  border-left: none;
+  transform: rotate(45deg);
+}
+
+/* Subtask label */
+.sub-row-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+  flex: 1;
+  line-height: 1.35;
+  transition: color 0.18s, text-decoration 0.18s;
+}
+.sub-row-label.sub-label-done {
+  text-decoration: line-through;
+  color: var(--text-tertiary);
+}

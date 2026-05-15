@@ -450,8 +450,33 @@ function _bindTaskDelegation(root) {
   root.addEventListener('click', e => {
     const el = e.target.closest('[data-action]');
     if (!el) return;
-    const { action, id } = el.dataset;
-    if (action === 'toggle') toggleTask(id);
-    if (action === 'edit')   openEdit(id);
+    const { action, id, taskId, subIdx } = el.dataset;
+
+    if (action === 'toggle') {
+      e.stopPropagation();
+      toggleTask(id);
+    }
+
+    if (action === 'expand') {
+      // Only expand — don't open edit — if card has subtasks
+      const li = e.target.closest('.task-card');
+      if (li && li.dataset.expandable) {
+        // Don't expand when tapping the checkbox
+        if (!e.target.closest('.task-chk')) {
+          toggleSubDrawer(li);
+        }
+      } else {
+        openEdit(id);
+      }
+    }
+
+    if (action === 'edit') {
+      openEdit(id);
+    }
+
+    if (action === 'toggle-subtask') {
+      e.stopPropagation();
+      toggleSubtask(el.dataset.taskId, parseInt(el.dataset.subIdx));
+    }
   });
 }
