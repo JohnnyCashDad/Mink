@@ -880,3 +880,299 @@ input[type="checkbox"].ios-chk:checked::after {
 
 /* ── Utility ─────────────────────────────────────────────────────────────────── */
 .hidden { display: none !important; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CAPTURE SHEET — rebuilt UI
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Header */
+.cap-hd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px 8px;
+}
+.cap-cancel-btn {
+  background: none; border: none;
+  color: var(--accent); font-size: 15px;
+  padding: 4px 0; font-family: var(--font-sans);
+}
+.cap-hd-title {
+  font-size: 15px; font-weight: 600; color: var(--text-primary);
+}
+.cap-hd-add {
+  background: none; border: none;
+  font-size: 15px; font-weight: 700;
+  color: var(--text-tertiary); padding: 4px 0;
+  font-family: var(--font-sans);
+  transition: color 0.18s;
+}
+.cap-hd-add.cap-hd-add-active { color: var(--accent); }
+
+/* Body scroll area */
+.cap-body {
+  padding: 4px 16px 12px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  flex: 1;
+}
+
+/* Title input — bare, no box */
+.cap-title-wrap {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 4px 0 10px;
+}
+.cap-title-bare {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  resize: none;
+  font-size: 19px;
+  font-weight: 500;
+  color: var(--text-primary);
+  line-height: 1.4;
+  font-family: var(--font-sans);
+  min-height: 28px;
+  caret-color: var(--accent);
+  overflow: hidden;
+}
+.cap-title-bare::placeholder { color: var(--text-tertiary); }
+
+/* Mic button */
+.cap-mic-btn {
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border-strong);
+  background: var(--bg-elevated);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; margin-top: 2px;
+  transition: background 0.15s, border-color 0.15s;
+}
+.cap-mic-btn i { font-size: 17px; color: var(--text-tertiary); transition: color 0.15s; }
+.cap-mic-btn.recording {
+  background: var(--pri-high);
+  border-color: var(--pri-high);
+  animation: mic-pulse 1.2s infinite;
+}
+.cap-mic-btn.recording i { color: #fff; }
+@keyframes mic-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(226,75,74,0.35); }
+  50%       { box-shadow: 0 0 0 8px rgba(226,75,74,0); }
+}
+
+/* Divider below title */
+.cap-divider {
+  height: 1px;
+  background: var(--border-subtle);
+  margin: 2px 0 18px;
+}
+
+/* Section label */
+.cap-sec-lbl {
+  font-size: 10px; font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase; letter-spacing: 0.8px;
+  margin-bottom: 9px;
+}
+
+/* Priority chips */
+.cap-pri-row {
+  display: flex; gap: 6px;
+  margin-bottom: 20px;
+}
+.cap-pri-btn {
+  flex: 1;
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+  padding: 9px 4px;
+  border-radius: 10px;
+  border: 1.5px solid var(--border-subtle);
+  background: var(--bg-elevated);
+  font-size: 12px; font-weight: 600;
+  color: var(--text-tertiary);
+  font-family: var(--font-sans);
+  transition: all 0.14s;
+}
+.cap-pri-dot {
+  width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+}
+.cap-pri-btn.cap-pri-sel {
+  border-color: var(--sel-color, var(--accent));
+  color: var(--sel-color, var(--accent));
+  background: color-mix(in srgb, var(--sel-color, var(--accent)) 12%, transparent);
+}
+
+/* Schedule chips */
+.cap-sched-row {
+  display: flex; gap: 6px; flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.cap-sched-btn {
+  display: flex; align-items: center; gap: 5px;
+  padding: 8px 12px;
+  border-radius: var(--radius-pill);
+  border: 1.5px solid var(--border-subtle);
+  background: var(--bg-elevated);
+  font-size: 12px; font-weight: 500;
+  color: var(--text-tertiary);
+  font-family: var(--font-sans);
+  transition: all 0.14s;
+}
+.cap-sched-btn i { font-size: 14px; }
+.cap-sched-btn.cap-sched-sel {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(29,158,117,0.1);
+}
+
+/* Date input */
+.cap-date-input {
+  width: 100%; margin-bottom: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  color: var(--text-primary);
+  background: var(--bg-elevated);
+  outline: none; color-scheme: dark;
+}
+.cap-date-input:focus { border-color: var(--accent); }
+
+/* Field rows — project / tags / notes */
+.cap-field-row {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: 11px 13px;
+  margin-bottom: 7px;
+  cursor: pointer;
+  position: relative;
+  transition: border-color 0.15s;
+}
+.cap-field-row:hover { border-color: var(--border-strong); }
+.cap-field-row > i:first-child { font-size: 16px; color: var(--text-tertiary); flex-shrink: 0; }
+.cap-field-label { font-size: 13px; color: var(--text-tertiary); flex: 1; }
+.cap-field-val   { font-size: 13px; color: var(--text-secondary); font-weight: 500; }
+.cap-field-chev  { font-size: 14px; color: var(--text-tertiary); flex-shrink: 0; }
+
+/* Hidden select overlaid on project row */
+.cap-field-select {
+  position: absolute; inset: 0;
+  opacity: 0; cursor: pointer;
+  width: 100%; border: none; background: none;
+}
+
+/* Tags expanded panel */
+.cap-tags-expanded {
+  margin: -4px 0 7px;
+  padding: 10px 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-top: none;
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+}
+.cap-tag-chips { display: flex; flex-wrap: wrap; gap: 7px; }
+.cap-tag-chip {
+  padding: 5px 12px;
+  border-radius: var(--radius-pill);
+  border: 1.5px solid var(--border-default);
+  background: var(--bg-base);
+  font-size: 12px; font-weight: 500;
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  transition: all 0.14s;
+}
+.cap-tag-chip.cap-tag-sel {
+  border-color: var(--tag-color, var(--accent));
+  color: var(--tag-color, var(--accent));
+  background: color-mix(in srgb, var(--tag-color, var(--accent)) 12%, transparent);
+}
+
+/* Notes field row */
+.cap-notes-row { align-items: flex-start; cursor: default; }
+.cap-notes-row:hover { border-color: var(--border-default); }
+.cap-notes-row:focus-within { border-color: var(--accent) !important; }
+.cap-notes-input {
+  flex: 1; background: none; border: none; outline: none; resize: none;
+  font-size: 13px; color: var(--text-secondary);
+  font-family: var(--font-sans); line-height: 1.5;
+  min-height: 20px; overflow: hidden;
+}
+.cap-notes-input::placeholder { color: var(--text-tertiary); }
+
+/* Subtask rows */
+.cap-sub-row {
+  display: flex; align-items: center; gap: 9px;
+  padding: 9px 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: 10px;
+  margin-bottom: 5px;
+  transition: opacity 0.15s, transform 0.15s;
+}
+.cap-sub-chk {
+  width: 18px; height: 18px; border-radius: 50%;
+  border: 1.5px solid var(--text-tertiary);
+  background: none; flex-shrink: 0;
+  position: relative; transition: all 0.15s; padding: 0;
+}
+.cap-sub-chk.cap-sub-done { background: var(--accent); border-color: var(--accent); }
+.cap-sub-chk.cap-sub-done::after {
+  content: ''; position: absolute;
+  left: 3px; top: 1px; width: 6px; height: 9px;
+  border: 1.5px solid var(--text-inverse);
+  border-top: none; border-left: none; transform: rotate(45deg);
+}
+.cap-sub-input {
+  flex: 1; background: none; border: none; outline: none;
+  font-size: 13px; color: var(--text-secondary);
+  font-family: var(--font-sans);
+}
+.cap-sub-input::placeholder { color: var(--text-tertiary); }
+.cap-sub-del {
+  background: none; border: none;
+  color: var(--text-tertiary); padding: 2px 4px; line-height: 1;
+  transition: color 0.15s;
+}
+.cap-sub-del i { font-size: 14px; }
+.cap-sub-del:hover { color: var(--pri-high); }
+
+/* Add subtask button */
+.cap-add-sub-btn {
+  width: 100%; background: none;
+  border: 1.5px dashed var(--border-default);
+  border-radius: 10px; padding: 9px;
+  font-size: 12px; color: var(--text-tertiary);
+  font-family: var(--font-sans);
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+  transition: border-color 0.15s, color 0.15s;
+  margin-bottom: 20px;
+}
+.cap-add-sub-btn i { font-size: 13px; }
+.cap-add-sub-btn:hover { border-color: var(--border-strong); color: var(--text-secondary); }
+
+/* Footer + submit button */
+.cap-footer {
+  padding: 10px 16px;
+  border-top: 1px solid var(--border-subtle);
+  position: sticky; bottom: 0;
+  background: var(--bg-card);
+}
+.cap-submit-btn {
+  width: 100%; padding: 14px;
+  background: var(--accent); color: var(--text-inverse);
+  border: none; border-radius: var(--radius-md);
+  font-size: 16px; font-weight: 700;
+  font-family: var(--font-sans);
+  letter-spacing: -0.2px;
+  transition: opacity 0.15s, transform 0.12s;
+}
+.cap-submit-btn:disabled {
+  background: var(--bg-elevated);
+  color: var(--text-tertiary);
+  cursor: default;
+}
+.cap-submit-btn:not(:disabled):active { transform: scale(0.98); }
