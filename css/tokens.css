@@ -19,9 +19,9 @@
   --border-strong:   #253B2E;
 
   /* Text */
-  --text-primary:    #F2F8F4;
-  --text-secondary:  #C8E0D4;
-  --text-tertiary:   #7ABFA0;
+  --text-primary:    #E8F0EB;
+  --text-secondary:  #6B8C7A;
+  --text-tertiary:   #2E4A3A;
   --text-inverse:    #0E1512;
 
   /* Priority */
@@ -31,19 +31,19 @@
 
   /* Semantic chips */
   --chip-proj-bg:    #1A2133;
-  --chip-proj-text:  #93B4E8;
+  --chip-proj-text:  #6B8FC4;
   --chip-proj-border:#1E2B44;
   --chip-due-bg:     #1F1A10;
-  --chip-due-text:   #C4A052;
+  --chip-due-text:   #9B7A2E;
   --chip-due-border: #2B2210;
   --chip-over-bg:    #1F1010;
-  --chip-over-text:  #D46A6A;
+  --chip-over-text:  #9B3A3A;
   --chip-over-border:#2B1010;
   --chip-tag-bg:     #101A14;
-  --chip-tag-text:   #5DC99A;
+  --chip-tag-text:   #3D9E72;
   --chip-tag-border: #152010;
   --chip-roll-bg:    #181818;
-  --chip-roll-text:  #7ABFA0;
+  --chip-roll-text:  #4A6357;
   --chip-roll-border:#1E2420;
 
   /* Spacing */

@@ -20,9 +20,9 @@ async function renderToday() {
   const doneCount = completed.length;
 
   // Hero
-  const highCount = [...rolled, ...active].filter(t => t.priority === 'high').length;
+  const highCount   = [...rolled, ...active].filter(t => t.priority === 'high').length;
   const rolledCount = rolled.length;
-  const offset = ringOffset(doneCount, totalAll);
+  const offset      = ringOffset(doneCount, totalAll);
 
   const heroHTML = `
 <div id="today-hero">
@@ -194,9 +194,9 @@ function _renderNewProjForm(content) {
   <div class="cap-label">Name</div>
   <input id="np-name" class="new-proj-input" type="text" placeholder="Project name" value="${esc(newProjDraft.name)}" autocapitalize="sentences">
   <div class="cap-label" style="margin-top:16px">Color</div>
-  <div class="swatch-row">${PROJECT_COLORS.map(c => `<button class="color-swatch ${c===newProjDraft.colorHex?'sel':''}" data-color="${c}" style="background:${c}"></button>`).join('')}</div>
+  <div class="swatch-row">${PROJECT_COLORS.map(c => `<button class="color-swatch ${c===newProjDraft.colorHex?'sel':''}\" data-color="${c}" style="background:${c}"></button>`).join('')}</div>
   <div class="cap-label" style="margin-top:14px">Icon</div>
-  <div class="icon-row">${PROJECT_ICONS.map((ic, i) => `<button class="icon-opt ${ic===newProjDraft.icon?'sel':''}" data-icon-idx="${i}">${ic}</button>`).join('')}</div>
+  <div class="icon-row">${PROJECT_ICONS.map((ic, i) => `<button class="icon-opt ${ic===newProjDraft.icon?'sel':''}\" data-icon-idx="${i}">${ic}</button>`).join('')}</div>
   <div class="new-proj-actions">
     <button class="btn-sec" data-action="cancel-new-proj">Cancel</button>
     <button class="btn-pri" data-action="save-new-proj">Create</button>
@@ -330,7 +330,7 @@ function _bindProjectsDelegation(root) {
       let chosenColor = PROJECT_COLORS[0];
       form.innerHTML = `
 <input id="new-tag-name" class="new-proj-input" type="text" placeholder="Tag name" style="margin-bottom:8px">
-<div class="swatch-row">${PROJECT_COLORS.slice(0,6).map(c=>`<button class="tag-cs color-swatch ${c===chosenColor?'sel':''}" data-color="${c}" style="background:${c}"></button>`).join('')}</div>
+<div class="swatch-row">${PROJECT_COLORS.slice(0,6).map(c=>`<button class="tag-cs color-swatch ${c===chosenColor?'sel':''}\" data-color="${c}" style="background:${c}"></button>`).join('')}</div>
 <div class="new-proj-actions" style="margin-top:8px">
   <button class="btn-sec" id="cancel-tag">Cancel</button>
   <button class="btn-pri" id="save-tag">Add tag</button>
@@ -450,7 +450,7 @@ function _bindTaskDelegation(root) {
   root.addEventListener('click', e => {
     const el = e.target.closest('[data-action]');
     if (!el) return;
-    const { action, id, taskId, subIdx } = el.dataset;
+    const { action, id } = el.dataset;
 
     if (action === 'toggle') {
       e.stopPropagation();
@@ -458,20 +458,21 @@ function _bindTaskDelegation(root) {
     }
 
     if (action === 'expand') {
-      // Only expand — don't open edit — if card has subtasks
+      // Cards with subtasks: expand the drawer
       const li = e.target.closest('.task-card');
       if (li && li.dataset.expandable) {
-        // Don't expand when tapping the checkbox
         if (!e.target.closest('.task-chk')) {
           toggleSubDrawer(li);
         }
       } else {
-        openEdit(id);
+        // No subtasks — open detail panel
+        openTaskDetail(id);
       }
     }
 
     if (action === 'edit') {
-      openEdit(id);
+      // Cards without subtasks land here — open detail panel
+      openTaskDetail(id);
     }
 
     if (action === 'toggle-subtask') {
