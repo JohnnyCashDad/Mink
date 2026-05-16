@@ -18,10 +18,10 @@
   --border-default:  #1E2B24;
   --border-strong:   #253B2E;
 
-  /* Text — updated for legibility (CLAUDEv2.md: "Text contrast updated") */
-  --text-primary:    #F2F8F4;
-  --text-secondary:  #C8E0D4;
-  --text-tertiary:   #7ABFA0;
+  /* Text — high-contrast tier */
+  --text-primary:    #FFFFFF;
+  --text-secondary:  #DDEAE2;
+  --text-tertiary:   #A8D4BF;
   --text-inverse:    #0E1512;
 
   /* Priority */
@@ -29,22 +29,22 @@
   --pri-med:         #EF9F27;
   --pri-low:         #2E4A3A;
 
-  /* Semantic chips */
-  --chip-proj-bg:    #1A2133;
-  --chip-proj-text:  #6B8FC4;
-  --chip-proj-border:#1E2B44;
-  --chip-due-bg:     #1F1A10;
-  --chip-due-text:   #9B7A2E;
-  --chip-due-border: #2B2210;
-  --chip-over-bg:    #1F1010;
-  --chip-over-text:  #9B3A3A;
-  --chip-over-border:#2B1010;
-  --chip-tag-bg:     #101A14;
-  --chip-tag-text:   #3D9E72;
-  --chip-tag-border: #152010;
-  --chip-roll-bg:    #181818;
-  --chip-roll-text:  #4A6357;
-  --chip-roll-border:#1E2420;
+  /* Semantic chips — text bumped to AA+ on dark backgrounds */
+  --chip-proj-bg:    #1F2942;
+  --chip-proj-text:  #A8C4F0;
+  --chip-proj-border:#2A3A5A;
+  --chip-due-bg:     #2A2310;
+  --chip-due-text:   #F0C765;
+  --chip-due-border: #3D2E14;
+  --chip-over-bg:    #2A1414;
+  --chip-over-text:  #FF8A8A;
+  --chip-over-border:#3D1A1A;
+  --chip-tag-bg:     #142820;
+  --chip-tag-text:   #6FE0A8;
+  --chip-tag-border: #1F3A2E;
+  --chip-roll-bg:    #242424;
+  --chip-roll-text:  #B0BFB6;
+  --chip-roll-border:#2E3530;
 
   /* Spacing */
   --space-xs:   4px;
