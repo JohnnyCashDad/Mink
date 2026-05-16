@@ -18,10 +18,10 @@
   --border-default:  #1E2B24;
   --border-strong:   #253B2E;
 
-  /* Text */
-  --text-primary:    #E8F0EB;
-  --text-secondary:  #6B8C7A;
-  --text-tertiary:   #2E4A3A;
+  /* Text — updated for legibility (CLAUDEv2.md: "Text contrast updated") */
+  --text-primary:    #F2F8F4;
+  --text-secondary:  #C8E0D4;
+  --text-tertiary:   #7ABFA0;
   --text-inverse:    #0E1512;
 
   /* Priority */
