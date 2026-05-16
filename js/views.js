@@ -421,6 +421,8 @@ async function renderSomeday() {
 
 // ── Shared task event delegation ──────────────────────────────────────────────
 function _bindTaskDelegation(root) {
+  if (root._taskDelegationBound) return;
+  root._taskDelegationBound = true;
   root.addEventListener('click', e => {
     const el = e.target.closest('[data-action]');
     if (!el) return;
@@ -430,11 +432,7 @@ function _bindTaskDelegation(root) {
 
     if (action === 'expand') {
       const li = e.target.closest('.task-card');
-      if (li && li.dataset.expandable) {
-        if (!e.target.closest('.task-chk')) toggleSubDrawer(li);
-      } else {
-        openTaskDetail(id);
-      }
+      if (li) toggleSubDrawer(li);
     }
 
     if (action === 'edit') { openTaskDetail(id); }
