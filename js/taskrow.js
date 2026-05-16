@@ -19,7 +19,6 @@ function buildTaskRow(task, { projectName = '', tagNames = [], ctx = '' } = {}) 
   const allSubsDone   = subtotalCount > 0 && subtotalDone === subtotalCount;
   const subPct        = subtotalCount > 0 ? Math.round((subtotalDone / subtotalCount) * 100) : 0;
 
-  // Progress bar + chevron shown only when subtasks exist
   const subtaskSummaryHTML = subtotalCount > 0 ? `
     <div class="sub-summary">
       <div class="sub-bar-wrap">
@@ -31,7 +30,6 @@ function buildTaskRow(task, { projectName = '', tagNames = [], ctx = '' } = {}) 
       <i class="ti ti-chevron-down sub-expand-chev" aria-hidden="true"></i>
     </div>` : '';
 
-  // Subtask drawer rows
   const subtaskDrawerHTML = subtotalCount > 0 ? `
     <div class="sub-drawer" id="subdrawer-${task.id}">
       <div class="sub-drawer-inner">
@@ -62,8 +60,14 @@ function buildTaskRow(task, { projectName = '', tagNames = [], ctx = '' } = {}) 
   const moveLabel = (ctx === 'upcoming' || ctx === 'someday') ? 'Move to Today' : 'Someday';
   const moveIcon  = (ctx === 'upcoming' || ctx === 'someday') ? 'ti-sun' : 'ti-inbox';
 
-  // Cards with subtasks get data-expandable for tap-to-expand behaviour
   const expandable = subtotalCount > 0 ? 'data-expandable="true"' : '';
+
+  // Drag handle — shown on draggable contexts (today, upcoming)
+  const draggable = (ctx === 'today' || ctx === 'upcoming') && !task.isComplete;
+  const dragHandle = draggable
+    ? `<div class="drag-handle" aria-label="Drag to reorder">
+        <i class="ti ti-grip-vertical" aria-hidden="true"></i>
+       </div>` : '';
 
   return `
 <li class="task-card ${task.isComplete ? 'is-done' : ''}" data-id="${task.id}" data-ctx="${ctx}" ${expandable}>
@@ -85,6 +89,7 @@ function buildTaskRow(task, { projectName = '', tagNames = [], ctx = '' } = {}) 
         ${subtaskSummaryHTML}
         ${notesHTML}
       </div>
+      ${dragHandle}
     </div>
     ${rolledFooter}
   </div>
@@ -108,28 +113,24 @@ async function toggleSubtask(taskId, subIdx) {
   subtasks[subIdx] = { ...subtasks[subIdx], isComplete: !subtasks[subIdx].isComplete };
   await Tasks.update(taskId, { subtasks });
 
-  // Update DOM without full re-render
-  const li        = document.querySelector(`[data-id="${taskId}"]`);
+  const li = document.querySelector(`[data-id="${taskId}"]`);
   if (!li) return;
 
-  const done      = subtasks.filter(s => s.isComplete).length;
-  const total     = subtasks.length;
-  const allDone   = done === total;
-  const pct       = Math.round((done / total) * 100);
+  const done    = subtasks.filter(s => s.isComplete).length;
+  const total   = subtasks.length;
+  const allDone = done === total;
+  const pct     = Math.round((done / total) * 100);
 
-  // Update progress bar
   const bar = document.getElementById(`subbar-${taskId}`);
   if (bar) bar.style.width = pct + '%';
 
-  // Update count label
   const countEl = document.getElementById(`subcount-${taskId}`);
   if (countEl) {
     countEl.textContent = allDone ? `${total} of ${total} ✓` : `${done} of ${total}`;
     countEl.classList.toggle('sub-count-done', allDone);
   }
 
-  // Update the specific subtask row
-  const row    = li.querySelectorAll('.sub-row')[subIdx];
+  const row = li.querySelectorAll('.sub-row')[subIdx];
   if (row) {
     const chk   = row.querySelector('.sub-chk');
     const label = row.querySelector('.sub-row-label');
@@ -158,6 +159,8 @@ function initSwipe(li) {
   }, { passive: true });
 
   li.addEventListener('touchmove', e => {
+    // Don't swipe if drag is active on this card
+    if (window._dragState && window._dragState.li === li) return;
     const dx = e.touches[0].clientX - sx;
     const dy = e.touches[0].clientY - sy;
     if (axis === null) axis = Math.abs(dx) > Math.abs(dy) ? 'h' : 'v';
@@ -170,6 +173,7 @@ function initSwipe(li) {
   }, { passive: true });
 
   li.addEventListener('touchend', e => {
+    if (window._dragState && window._dragState.li === li) return;
     const dx = e.changedTouches[0].clientX - sx;
     wrap.style.transition = 'transform 0.22s ease';
     wrap.style.transform  = '';
@@ -183,6 +187,16 @@ function initSwipe(li) {
     if      (dx >  THRESH) { ctx === 'upcoming' || ctx === 'someday' ? moveToToday(id) : moveToSomeday(id); }
     else if (dx < -THRESH) { confirmDeleteTask(id); }
   }, { passive: true });
+}
+
+// ── Init both swipe + drag on a card ──────────────────────────────────────────
+function initCardInteractions(li) {
+  initSwipe(li);
+  const ctx = li.dataset.ctx;
+  const isComplete = li.classList.contains('is-done');
+  if ((ctx === 'today' || ctx === 'upcoming') && !isComplete) {
+    initDrag(li);
+  }
 }
 
 // ── Task CRUD actions ─────────────────────────────────────────────────────────

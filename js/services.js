@@ -32,11 +32,13 @@ async function setupNotifications() {
   }
   if (Notification.permission !== 'granted') return;
 
-  const today = todayStr();
+  const today      = todayStr();
+  const digestHour = getDigestHour(); // from settings.js — configurable, default 8
+
   if (localStorage.getItem(DIGEST_KEY) === today) return;
 
   const now = new Date();
-  if (now.getHours() < 8) return;
+  if (now.getHours() < digestHour) return;
 
   const all       = await Tasks.all();
   const todayOpen = sortByPriority(

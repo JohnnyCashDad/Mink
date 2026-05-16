@@ -19,15 +19,22 @@ async function renderToday() {
   const totalAll  = totalOpen + completed.length;
   const doneCount = completed.length;
 
-  // Hero
   const highCount   = [...rolled, ...active].filter(t => t.priority === 'high').length;
   const rolledCount = rolled.length;
   const offset      = ringOffset(doneCount, totalAll);
+  const digestHour  = getDigestHour();
 
   const heroHTML = `
 <div id="today-hero">
-  <div class="hero-eyebrow">${friendlyDate()}</div>
-  <div class="hero-title">Good <em>${greeting()}.</em></div>
+  <div class="hero-top-row">
+    <div>
+      <div class="hero-eyebrow">${friendlyDate()}</div>
+      <div class="hero-title">Good <em>${greeting()}.</em></div>
+    </div>
+    <button class="hero-gear-btn" id="hero-gear-btn" aria-label="Settings">
+      <i class="ti ti-settings" aria-hidden="true"></i>
+    </button>
+  </div>
   <div class="progress-card">
     <div class="ring-wrap">
       <svg width="52" height="52" viewBox="0 0 40 40">
@@ -42,13 +49,14 @@ async function renderToday() {
       <div class="progress-pills">
         ${highCount ? `<div class="progress-pill"><span class="pill-dot" style="background:var(--pri-high)"></span>${highCount} high</div>` : ''}
         ${rolledCount ? `<div class="progress-pill"><span class="pill-dot" style="background:var(--pri-med)"></span>${rolledCount} rolled</div>` : ''}
-        <div class="progress-pill"><span class="pill-dot" style="background:var(--accent)"></span>digest 8am</div>
+        <div class="progress-pill sett-pill" id="digest-pill">
+          <span class="pill-dot" style="background:var(--accent)"></span>digest ${formatHour(digestHour)}
+        </div>
       </div>
     </div>
   </div>
 </div>`;
 
-  // Task lists
   let listsHTML = `
 <div class="search-bar">
   <i class="ti ti-search" aria-hidden="true"></i>
@@ -87,13 +95,11 @@ async function renderToday() {
 }
 
 function _bindToday() {
-  // Done toggle
   document.getElementById('done-toggle')?.addEventListener('click', () => {
     document.getElementById('done-list')?.classList.toggle('open');
     document.getElementById('done-chev')?.classList.toggle('open');
   });
 
-  // Search
   document.getElementById('search-inp')?.addEventListener('input', function() {
     const q = this.value.toLowerCase();
     document.querySelectorAll('.task-card').forEach(card => {
@@ -102,8 +108,10 @@ function _bindToday() {
     });
   });
 
-  // Swipe + delegation
-  document.querySelectorAll('.task-card').forEach(initSwipe);
+  document.getElementById('hero-gear-btn')?.addEventListener('click', openSettings);
+  document.getElementById('digest-pill')?.addEventListener('click', openSettings);
+
+  document.querySelectorAll('.task-card').forEach(initCardInteractions);
   _bindTaskDelegation(document.getElementById('app-content'));
 }
 
@@ -131,7 +139,6 @@ async function renderUpcoming() {
   } else {
     const groups = {};
     upcoming.forEach(t => { (groups[t.scheduledFor] = groups[t.scheduledFor] || []).push(t); });
-
     Object.keys(groups).sort().forEach(ds => {
       const d     = new Date(ds + 'T00:00:00');
       const label = ds === tom ? 'Tomorrow'
@@ -144,7 +151,7 @@ async function renderUpcoming() {
   }
 
   content.innerHTML = html;
-  document.querySelectorAll('.task-card').forEach(initSwipe);
+  document.querySelectorAll('.task-card').forEach(initCardInteractions);
   _bindTaskDelegation(content);
   document.getElementById('search-inp')?.addEventListener('input', function() {
     const q = this.value.toLowerCase();
@@ -162,7 +169,6 @@ const newProjDraft  = { name: '', colorHex: PROJECT_COLORS[0], icon: PROJECT_ICO
 
 async function renderProjects() {
   const content = document.getElementById('app-content');
-
   if (activeProjId)    { await _renderProjectDetail(activeProjId); return; }
   if (showNewProjForm) { _renderNewProjForm(content); return; }
 
@@ -182,7 +188,6 @@ async function renderProjects() {
   <i class="ti ti-chevron-right proj-chevron" aria-hidden="true"></i>
 </div>`).join('');
   }
-
   content.innerHTML = html;
   _bindProjectsDelegation(content);
 }
@@ -194,9 +199,9 @@ function _renderNewProjForm(content) {
   <div class="cap-label">Name</div>
   <input id="np-name" class="new-proj-input" type="text" placeholder="Project name" value="${esc(newProjDraft.name)}" autocapitalize="sentences">
   <div class="cap-label" style="margin-top:16px">Color</div>
-  <div class="swatch-row">${PROJECT_COLORS.map(c => `<button class="color-swatch ${c===newProjDraft.colorHex?'sel':''}\" data-color="${c}" style="background:${c}"></button>`).join('')}</div>
+  <div class="swatch-row">${PROJECT_COLORS.map(c => `<button class="color-swatch ${c===newProjDraft.colorHex?'sel':''}" data-color="${c}" style="background:${c}"></button>`).join('')}</div>
   <div class="cap-label" style="margin-top:14px">Icon</div>
-  <div class="icon-row">${PROJECT_ICONS.map((ic, i) => `<button class="icon-opt ${ic===newProjDraft.icon?'sel':''}\" data-icon-idx="${i}">${ic}</button>`).join('')}</div>
+  <div class="icon-row">${PROJECT_ICONS.map((ic, i) => `<button class="icon-opt ${ic===newProjDraft.icon?'sel':''}" data-icon-idx="${i}">${ic}</button>`).join('')}</div>
   <div class="new-proj-actions">
     <button class="btn-sec" data-action="cancel-new-proj">Cancel</button>
     <button class="btn-pri" data-action="save-new-proj">Create</button>
@@ -224,14 +229,13 @@ function _renderNewProjForm(content) {
 async function _renderProjectDetail(id) {
   const content = document.getElementById('app-content');
   const [project, allTasks, allTags] = await Promise.all([Projects.get(id), Tasks.all(), Tags.all()]);
-
   if (!project) { activeProjId = null; renderProjects(); return; }
 
-  const tagMap  = Object.fromEntries(allTags.map(t => [t.id, t.name]));
-  const tn      = t => (t.tagIds || []).map(id => tagMap[id]).filter(Boolean);
+  const tagMap    = Object.fromEntries(allTags.map(t => [t.id, t.name]));
+  const tn        = t => (t.tagIds || []).map(id => tagMap[id]).filter(Boolean);
   const projTasks = allTasks.filter(t => t.projectId === id);
-  const open = sortByPriority(projTasks.filter(t => !t.isComplete));
-  const done = projTasks.filter(t => t.isComplete);
+  const open      = sortByPriority(projTasks.filter(t => !t.isComplete));
+  const done      = projTasks.filter(t => t.isComplete);
 
   let html = `
 <div class="proj-detail-hd" style="background:${project.colorHex}">
@@ -257,7 +261,6 @@ async function _renderProjectDetail(id) {
 </ul>`;
   }
 
-  // Tags management
   const tagRows = allTags.map(t => `
 <div class="tag-row">
   <span class="tag-dot" style="background:${t.colorHex}"></span>
@@ -292,9 +295,8 @@ function _bindProjectsDelegation(root) {
     if (!el) return;
     const { action, id } = el.dataset;
 
-    if (action === 'open-proj')  { activeProjId = id; renderView(); }
+    if (action === 'open-proj')      { activeProjId = id; renderView(); }
     else if (action === 'back-proj') { activeProjId = null; renderView(); }
-
     else if (action === 'cancel-new-proj') {
       showNewProjForm = false;
       Object.assign(newProjDraft, { name: '', colorHex: PROJECT_COLORS[0], icon: PROJECT_ICONS[0] });
@@ -307,7 +309,6 @@ function _bindProjectsDelegation(root) {
       showNewProjForm = false; newProjDraft.name = '';
       renderView();
     }
-
     else if (action === 'del-proj') {
       if (!confirm(`Delete "${(await Projects.get(id))?.name}"? Tasks will be unassigned.`)) return;
       const all = await Tasks.all();
@@ -315,14 +316,12 @@ function _bindProjectsDelegation(root) {
       await Projects.remove(id);
       activeProjId = null; renderView();
     }
-
     else if (action === 'del-tag') {
       await Tags.remove(id);
       const all = await Tasks.all();
       await Promise.all(all.map(t => Tasks.update(t.id, { tagIds: (t.tagIds || []).filter(x => x !== id) })));
       renderView();
     }
-
     else if (action === 'show-tag-form') {
       const form = document.getElementById('new-tag-form');
       if (!form) return;
@@ -330,7 +329,7 @@ function _bindProjectsDelegation(root) {
       let chosenColor = PROJECT_COLORS[0];
       form.innerHTML = `
 <input id="new-tag-name" class="new-proj-input" type="text" placeholder="Tag name" style="margin-bottom:8px">
-<div class="swatch-row">${PROJECT_COLORS.slice(0,6).map(c=>`<button class="tag-cs color-swatch ${c===chosenColor?'sel':''}\" data-color="${c}" style="background:${c}"></button>`).join('')}</div>
+<div class="swatch-row">${PROJECT_COLORS.slice(0,6).map(c=>`<button class="tag-cs color-swatch ${c===chosenColor?'sel':''}" data-color="${c}" style="background:${c}"></button>`).join('')}</div>
 <div class="new-proj-actions" style="margin-top:8px">
   <button class="btn-sec" id="cancel-tag">Cancel</button>
   <button class="btn-pri" id="save-tag">Add tag</button>
@@ -362,21 +361,16 @@ async function renderStats() {
   const overdue        = allTasks.filter(t => !t.isComplete && !isSomeday(t) && t.scheduledFor < today);
   const someday        = allTasks.filter(t => !t.isComplete && isSomeday(t));
 
-  // 7-day completion trend
   const trend = [];
   for (let i = 6; i >= 0; i--) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
+    const d = new Date(); d.setDate(d.getDate() - i);
     const ds = d.toISOString().slice(0, 10);
-    const count = allTasks.filter(t => t.isComplete && t.scheduledFor === ds).length;
-    trend.push({ ds, count, day: d.toLocaleDateString(undefined, { weekday: 'short' }) });
+    trend.push({ count: allTasks.filter(t => t.isComplete && t.scheduledFor === ds).length, day: d.toLocaleDateString(undefined, { weekday: 'short' }) });
   }
   const maxTrend = Math.max(...trend.map(t => t.count), 1);
-
-  const barHTML = trend.map(({ count, day }) => {
+  const barHTML  = trend.map(({ count, day }) => {
     const h = Math.round((count / maxTrend) * 52);
-    return `
-<div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex:1">
+    return `<div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex:1">
   <span style="font-size:11px;color:var(--text-tertiary);font-weight:600">${count || ''}</span>
   <div style="width:100%;background:var(--bg-elevated);border-radius:6px;height:52px;display:flex;align-items:flex-end;overflow:hidden">
     <div style="width:100%;height:${h}px;background:var(--accent);border-radius:6px;transition:height 0.4s"></div>
@@ -386,35 +380,16 @@ async function renderStats() {
   }).join('');
 
   const pct = openToday.length + completedToday.length > 0
-    ? Math.round(completedToday.length / (openToday.length + completedToday.length) * 100)
-    : 0;
+    ? Math.round(completedToday.length / (openToday.length + completedToday.length) * 100) : 0;
 
   content.innerHTML = `
 <div class="page-header">Stats</div>
-
 <div class="stat-grid">
-  <div class="stat-card">
-    <div class="stat-label">Done today</div>
-    <div class="stat-value">${completedToday.length}</div>
-    <div class="stat-sub">${pct}% of today's tasks</div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-label">Total done</div>
-    <div class="stat-value">${completedAll.length}</div>
-    <div class="stat-sub">all time</div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-label">Overdue</div>
-    <div class="stat-value" style="color:${overdue.length ? 'var(--pri-high)' : 'var(--text-primary)'}">${overdue.length}</div>
-    <div class="stat-sub">need attention</div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-label">Someday</div>
-    <div class="stat-value">${someday.length}</div>
-    <div class="stat-sub">in backlog</div>
-  </div>
+  <div class="stat-card"><div class="stat-label">Done today</div><div class="stat-value">${completedToday.length}</div><div class="stat-sub">${pct}% of today's tasks</div></div>
+  <div class="stat-card"><div class="stat-label">Total done</div><div class="stat-value">${completedAll.length}</div><div class="stat-sub">all time</div></div>
+  <div class="stat-card"><div class="stat-label">Overdue</div><div class="stat-value" style="color:${overdue.length?'var(--pri-high)':'var(--text-primary)'}">${overdue.length}</div><div class="stat-sub">need attention</div></div>
+  <div class="stat-card"><div class="stat-label">Someday</div><div class="stat-value">${someday.length}</div><div class="stat-sub">in backlog</div></div>
 </div>
-
 <div class="section-lbl">7-day completions</div>
 <div style="margin:0 12px;background:var(--bg-card);border:1px solid var(--border-default);border-radius:14px;padding:16px">
   <div style="display:flex;gap:6px;align-items:flex-end">${barHTML}</div>
@@ -439,7 +414,6 @@ async function renderSomeday() {
         ${someday.map(t => buildTaskRow(t, { projectName: projMap[t.projectId]?.name || '', tagNames: tn(t), ctx: 'someday' })).join('')}
       </ul>`;
   }
-
   content.innerHTML = html;
   document.querySelectorAll('.task-card').forEach(initSwipe);
   _bindTaskDelegation(content);
@@ -452,28 +426,18 @@ function _bindTaskDelegation(root) {
     if (!el) return;
     const { action, id } = el.dataset;
 
-    if (action === 'toggle') {
-      e.stopPropagation();
-      toggleTask(id);
-    }
+    if (action === 'toggle') { e.stopPropagation(); toggleTask(id); }
 
     if (action === 'expand') {
-      // Cards with subtasks: expand the drawer
       const li = e.target.closest('.task-card');
       if (li && li.dataset.expandable) {
-        if (!e.target.closest('.task-chk')) {
-          toggleSubDrawer(li);
-        }
+        if (!e.target.closest('.task-chk')) toggleSubDrawer(li);
       } else {
-        // No subtasks — open detail panel
         openTaskDetail(id);
       }
     }
 
-    if (action === 'edit') {
-      // Cards without subtasks land here — open detail panel
-      openTaskDetail(id);
-    }
+    if (action === 'edit') { openTaskDetail(id); }
 
     if (action === 'toggle-subtask') {
       e.stopPropagation();
