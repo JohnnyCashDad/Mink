@@ -40,6 +40,7 @@ async function openTaskDetail(id) {
     dueDate:      task.dueDate || todayStr(),
     projectId:    task.projectId,
     tagIds:       [...(task.tagIds || [])],
+    subtasks:     (task.subtasks || []).map(s => ({ ...s })),
     isComplete:   task.isComplete,
     isRolledOver: task.isRolledOver,
     originalDate: task.originalDate,
@@ -164,6 +165,24 @@ function _buildPanelHTML(allProjects, allTags, project) {
            value="${esc(det.draft.dueDate)}" min="${todayStr()}" style="margin-bottom:14px">`
       : ''}`;
 
+  // Subtasks section
+  const subRows = det.draft.subtasks.map((s, i) => `
+    <div class="det-sub-row" id="det-subrow-${i}">
+      <button class="det-sub-chk${s.isComplete ? ' det-sub-chk-done' : ''}"
+              data-action="det-sub-toggle" data-idx="${i}" aria-label="Toggle subtask"></button>
+      <input class="det-sub-input" type="text" value="${esc(s.title)}"
+             data-action="det-sub-edit" data-idx="${i}" placeholder="Subtask…">
+      <button class="det-sub-del" data-action="det-sub-del" data-idx="${i}" aria-label="Delete subtask">
+        <i class="ti ti-x" aria-hidden="true"></i>
+      </button>
+    </div>`).join('');
+  const subSection = `
+    <div class="det-sec-lbl">Subtasks</div>
+    <div id="det-sub-list">${subRows}</div>
+    <button class="det-sub-add-btn" data-action="det-sub-add">
+      <i class="ti ti-plus" aria-hidden="true"></i>Add subtask
+    </button>`;
+
   // Rolled-over note
   const rolledNote = det.draft.isRolledOver && !det.draft.isComplete && det.draft.originalDate
     ? `<span class="det-meta-chip">
@@ -210,6 +229,8 @@ function _buildPanelHTML(allProjects, allTags, project) {
   ${projField}
   ${tagsField}
 
+  ${subSection}
+
   <div class="det-meta">
     ${rolledNote}
     ${createdLabel ? `<span class="det-meta-chip"><i class="ti ti-clock" aria-hidden="true"></i>Added ${esc(createdLabel)}</span>` : ''}
@@ -242,6 +263,12 @@ async function _saveDetail() {
     default:         scheduledFor = todayStr();
   }
 
+  // Flush in-flight subtask input edits before save
+  document.querySelectorAll('.det-sub-input').forEach(inp => {
+    const i = parseInt(inp.dataset.idx);
+    if (det.draft.subtasks[i]) det.draft.subtasks[i].title = inp.value;
+  });
+
   await Tasks.update(det.taskId, {
     title:       det.draft.title,
     notes:       det.draft.notes,
@@ -250,6 +277,7 @@ async function _saveDetail() {
     dueDate:     (det.draft.schedule === 'someday' || !det.draft.hasDueDate) ? null : det.draft.dueDate,
     projectId:   det.draft.projectId,
     tagIds:      [...det.draft.tagIds],
+    subtasks:    det.draft.subtasks.filter(s => s.title.trim()).map(s => ({ ...s, title: s.title.trim() })),
   });
 }
 
@@ -297,7 +325,19 @@ function _bindPanelListeners() {
     document.getElementById('det-tags-expanded')?.classList.toggle('hidden');
   });
 
-  panel.addEventListener('click', _handlePanelClick);
+  // Subtask input edits — sync to draft on every keystroke
+  document.querySelectorAll('.det-sub-input').forEach(inp => {
+    inp.addEventListener('input', () => {
+      const i = parseInt(inp.dataset.idx);
+      if (det.draft.subtasks[i]) det.draft.subtasks[i].title = inp.value;
+    });
+  });
+
+  // Panel click delegation — bind once (innerHTML doesn't drop parent listeners)
+  if (!panel._delegationBound) {
+    panel._delegationBound = true;
+    panel.addEventListener('click', _handlePanelClick);
+  }
 }
 
 async function _handlePanelClick(e) {
@@ -382,10 +422,49 @@ async function _handlePanelClick(e) {
     const task = await Tasks.get(det.taskId);
     if (!task) return;
     const nowDone = !task.isComplete;
-    await Tasks.update(det.taskId, { isComplete: nowDone });
+    await Tasks.update(det.taskId, {
+      isComplete: nowDone,
+      completedAt: nowDone ? new Date().toISOString() : null,
+    });
     det.draft.isComplete = nowDone;
     el.classList.toggle('det-chk-done', nowDone);
     document.getElementById('det-title')?.classList.toggle('det-title-done', nowDone);
+  }
+
+  else if (action === 'det-sub-toggle') {
+    const i = parseInt(el.dataset.idx);
+    det.draft.subtasks[i].isComplete = !det.draft.subtasks[i].isComplete;
+    el.classList.toggle('det-sub-chk-done', det.draft.subtasks[i].isComplete);
+  }
+
+  else if (action === 'det-sub-del') {
+    const i = parseInt(el.dataset.idx);
+    const row = document.getElementById(`det-subrow-${i}`);
+    if (row) {
+      row.style.transition = 'opacity 0.15s, transform 0.15s';
+      row.style.opacity = '0';
+      row.style.transform = 'translateX(8px)';
+      setTimeout(() => { det.draft.subtasks.splice(i, 1); _renderPanel(); }, 150);
+    }
+  }
+
+  else if (action === 'det-sub-add') {
+    // Flush title/notes so they aren't lost on re-render
+    const t = document.getElementById('det-title');
+    const n = document.getElementById('det-notes');
+    if (t) det.draft.title = t.value.trim();
+    if (n) det.draft.notes = n.value;
+    document.querySelectorAll('.det-sub-input').forEach(inp => {
+      const i = parseInt(inp.dataset.idx);
+      if (det.draft.subtasks[i]) det.draft.subtasks[i].title = inp.value;
+    });
+
+    det.draft.subtasks.push({ id: uid(), title: '', isComplete: false });
+    await _renderPanel();
+    setTimeout(() => {
+      const inputs = document.querySelectorAll('.det-sub-input');
+      if (inputs.length) inputs[inputs.length - 1].focus();
+    }, 40);
   }
 
   else if (action === 'det-delete') {

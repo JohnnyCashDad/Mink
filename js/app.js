@@ -1,7 +1,8 @@
 'use strict';
 
 // ── Navigation state ──────────────────────────────────────────────────────────
-let activeTab = 'today';
+let activeTab        = 'today';
+let viewingCompleted = false;
 
 const TAB_CONFIG = {
   today:    { label: 'Today',    icon: 'ti-sun',       fabAction: () => openCapture({}) },
@@ -17,6 +18,14 @@ async function renderView() {
   content.scrollTop = 0;
 
   const fab = document.getElementById('fab');
+  const completedBtn = document.getElementById('completed-btn');
+  completedBtn?.classList.toggle('active', viewingCompleted);
+
+  if (viewingCompleted) {
+    fab.style.display = 'none';
+    await renderCompleted();
+    return;
+  }
 
   if (activeTab === 'today') {
     fab.style.display = '';
@@ -53,14 +62,21 @@ async function renderView() {
 
 // ── Tab switching ─────────────────────────────────────────────────────────────
 function switchTab(tab) {
-  activeTab       = tab;
-  activeProjId    = null;
-  showNewProjForm = false;
+  activeTab        = tab;
+  activeProjId     = null;
+  showNewProjForm  = false;
+  viewingCompleted = false;
 
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.tab === tab);
   });
 
+  renderView();
+}
+
+// ── Completed view toggle ─────────────────────────────────────────────────────
+function toggleCompletedView() {
+  viewingCompleted = !viewingCompleted;
   renderView();
 }
 
@@ -74,6 +90,9 @@ function switchTab(tab) {
   // Capture overlay close on backdrop
   document.getElementById('capture-overlay')?.addEventListener('click', closeCapture);
 
+  // Completed view toggle
+  document.getElementById('completed-btn')?.addEventListener('click', toggleCompletedView);
+
   // Service worker
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').catch(() => {});
@@ -81,6 +100,7 @@ function switchTab(tab) {
 
   // Boot sequence
   await performRollover();
+  await backfillCompletedAt();
   setupNotifications();
   switchTab('today');
 })();

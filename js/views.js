@@ -284,12 +284,14 @@ async function _renderProjectDetail(id) {
     document.getElementById('done-list')?.classList.toggle('open');
     document.getElementById('done-chev')?.classList.toggle('open');
   });
-  document.querySelectorAll('.task-card').forEach(initSwipe);
+  document.querySelectorAll('.task-card').forEach(initCardInteractions);
   _bindTaskDelegation(content);
   _bindProjectsDelegation(content);
 }
 
 function _bindProjectsDelegation(root) {
+  if (root._projectsDelegationBound) return;
+  root._projectsDelegationBound = true;
   root.addEventListener('click', async e => {
     const el = e.target.closest('[data-action]');
     if (!el) return;
@@ -346,7 +348,7 @@ function _bindProjectsDelegation(root) {
         renderView();
       });
     }
-  }, { once: true });
+  });
 }
 
 // ── Stats view ────────────────────────────────────────────────────────────────
@@ -415,7 +417,55 @@ async function renderSomeday() {
       </ul>`;
   }
   content.innerHTML = html;
-  document.querySelectorAll('.task-card').forEach(initSwipe);
+  document.querySelectorAll('.task-card').forEach(initCardInteractions);
+  _bindTaskDelegation(content);
+}
+
+// ── Completed view ────────────────────────────────────────────────────────────
+async function renderCompleted() {
+  const content = document.getElementById('app-content');
+  const [allTasks, allProjects, allTags] = await Promise.all([Tasks.all(), Projects.all(), Tags.all()]);
+
+  const projMap = Object.fromEntries(allProjects.map(p => [p.id, p]));
+  const tagMap  = Object.fromEntries(allTags.map(t => [t.id, t.name]));
+  const tn      = t => (t.tagIds || []).map(id => tagMap[id]).filter(Boolean);
+
+  const completed = allTasks.filter(t => t.isComplete);
+  completed.sort((a, b) => (b.completedAt || '').localeCompare(a.completedAt || ''));
+
+  // Group by completion date (YYYY-MM-DD)
+  const groups = {};
+  completed.forEach(t => {
+    const key = t.completedAt ? t.completedAt.slice(0, 10) : 'unknown';
+    (groups[key] = groups[key] || []).push(t);
+  });
+
+  const today = todayStr();
+  const tom   = tomorrowStr();
+  const labelFor = ds => {
+    if (ds === today) return 'Today';
+    const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
+    if (ds === yesterday.toISOString().slice(0,10)) return 'Yesterday';
+    return new Date(ds + 'T00:00:00').toLocaleDateString(undefined, { weekday:'long', month:'long', day:'numeric' });
+  };
+
+  let html = `<div class="page-header">Completed</div>`;
+
+  if (!completed.length) {
+    html += emptyState('Nothing completed yet', 'Finished tasks land here', 'ti-checks');
+  } else {
+    html += `<div class="completed-count">${completed.length} task${completed.length === 1 ? '' : 's'} done</div>`;
+    Object.keys(groups).sort((a, b) => b.localeCompare(a)).forEach(ds => {
+      const label = ds === 'unknown' ? 'Earlier' : labelFor(ds);
+      html += `<div class="section-lbl">${esc(label)}</div>
+        <ul class="task-list">
+          ${groups[ds].map(t => buildTaskRow(t, { projectName: projMap[t.projectId]?.name || '', tagNames: tn(t), ctx: 'completed' })).join('')}
+        </ul>`;
+    });
+  }
+
+  content.innerHTML = html;
+  document.querySelectorAll('.task-card').forEach(initCardInteractions);
   _bindTaskDelegation(content);
 }
 
@@ -436,6 +486,11 @@ function _bindTaskDelegation(root) {
     }
 
     if (action === 'edit') { openTaskDetail(id); }
+
+    if (action === 'edit-task') {
+      e.stopPropagation();
+      openTaskDetail(el.dataset.id);
+    }
 
     if (action === 'toggle-subtask') {
       e.stopPropagation();

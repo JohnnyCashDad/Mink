@@ -23,6 +23,18 @@ async function performRollover() {
   localStorage.setItem(ROLLOVER_KEY, today);
 }
 
+// ── Backfill completedAt ──────────────────────────────────────────────────────
+// One-time migration: tasks completed before completedAt existed have no timestamp.
+// Stamp them with today so they appear in the Completed view.
+async function backfillCompletedAt() {
+  if (localStorage.getItem('mink.completedAtBackfill') === 'done') return;
+  const all = await Tasks.all();
+  const nowIso = new Date().toISOString();
+  const missing = all.filter(t => t.isComplete && !t.completedAt);
+  await Promise.all(missing.map(t => Tasks.update(t.id, { completedAt: nowIso })));
+  localStorage.setItem('mink.completedAtBackfill', 'done');
+}
+
 // ── Notifications ─────────────────────────────────────────────────────────────
 async function setupNotifications() {
   if (!('Notification' in window)) return;
