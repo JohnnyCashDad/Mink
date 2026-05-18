@@ -67,8 +67,10 @@ function buildTaskRow(task, { projectName = '', tagNames = [], ctx = '' } = {}) 
         : 'yesterday'}</span>
     </div>` : '';
 
-  const moveLabel = (ctx === 'upcoming' || ctx === 'someday') ? 'Move to Today' : 'Someday';
-  const moveIcon  = (ctx === 'upcoming' || ctx === 'someday') ? 'ti-sun' : 'ti-inbox';
+  let moveLabel, moveIcon;
+  if (ctx === 'completed')                              { moveLabel = 'Restore';        moveIcon = 'ti-arrow-back-up'; }
+  else if (ctx === 'upcoming' || ctx === 'someday')     { moveLabel = 'Move to Today';  moveIcon = 'ti-sun'; }
+  else                                                  { moveLabel = 'Someday';        moveIcon = 'ti-inbox'; }
 
   const expandable = subtotalCount > 0 ? 'data-expandable="true"' : '';
 
@@ -225,7 +227,11 @@ function initSwipe(li) {
     const id  = li.dataset.id;
     const ctx = li.dataset.ctx;
 
-    if      (dx >  THRESH) { ctx === 'upcoming' || ctx === 'someday' ? moveToToday(id) : moveToSomeday(id); }
+    if (dx > THRESH) {
+      if      (ctx === 'completed')                       restoreCompletedTask(id);
+      else if (ctx === 'upcoming' || ctx === 'someday')   moveToToday(id);
+      else                                                moveToSomeday(id);
+    }
     else if (dx < -THRESH) { confirmDeleteTask(id); }
   }, { passive: true });
 }
@@ -300,5 +306,21 @@ async function moveToSomeday(id) {
 
 async function moveToToday(id) {
   await Tasks.update(id, { scheduledFor: todayStr(), isRolledOver: false });
+  renderView();
+}
+
+// Restore a completed task: mark incomplete and ensure it lands somewhere visible.
+// If the task's scheduledFor is in the past, bump to today (flagged as rolled over).
+async function restoreCompletedTask(id) {
+  const t = await Tasks.get(id);
+  if (!t) return;
+  const today = todayStr();
+  const patch = { isComplete: false, completedAt: null };
+  if (!isSomeday(t) && t.scheduledFor < today) {
+    patch.scheduledFor = today;
+    patch.isRolledOver = true;
+    patch.originalDate = t.originalDate ?? t.scheduledFor;
+  }
+  await Tasks.update(id, patch);
   renderView();
 }
