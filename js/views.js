@@ -78,16 +78,7 @@ async function renderToday() {
           ${active.map(t => buildTaskRow(t, { projectName: projMap[t.projectId]?.name || '', tagNames: tn(t), ctx: 'today' })).join('')}
         </ul>`;
     }
-    if (completed.length) {
-      listsHTML += `
-<div class="done-toggle" id="done-toggle">
-  <span class="done-toggle-lbl">Completed · ${completed.length}</span>
-  <i class="ti ti-chevron-down done-toggle-chev" id="done-chev" aria-hidden="true"></i>
-</div>
-<ul class="task-list" id="done-list">
-  ${completed.map(t => buildTaskRow(t, { projectName: projMap[t.projectId]?.name || '', tagNames: tn(t), ctx: 'today' })).join('')}
-</ul>`;
-    }
+    // Completed tasks live in the dedicated Completed view (top-right button)
   }
 
   content.innerHTML = heroHTML + listsHTML;
@@ -95,11 +86,6 @@ async function renderToday() {
 }
 
 function _bindToday() {
-  document.getElementById('done-toggle')?.addEventListener('click', () => {
-    document.getElementById('done-list')?.classList.toggle('open');
-    document.getElementById('done-chev')?.classList.toggle('open');
-  });
-
   document.getElementById('search-inp')?.addEventListener('input', function() {
     const q = this.value.toLowerCase();
     document.querySelectorAll('.task-card').forEach(card => {
