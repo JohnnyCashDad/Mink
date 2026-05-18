@@ -40,6 +40,16 @@ function buildTaskRow(task, { projectName = '', tagNames = [], ctx = '' } = {}) 
                   aria-label="${s.isComplete ? 'Mark incomplete' : 'Mark complete'}"></button>
           <span class="sub-row-label ${s.isComplete ? 'sub-label-done' : ''}">${esc(s.title)}</span>
         </div>`).join('')}
+        <div class="sub-row sub-row-add">
+          <span class="sub-chk sub-chk-placeholder" aria-hidden="true">
+            <i class="ti ti-plus"></i>
+          </span>
+          <input class="sub-add-input" type="text" placeholder="Add subtask…"
+                 data-task-id="${task.id}" maxlength="200">
+        </div>
+        <button class="sub-edit-btn" data-action="edit-task" data-id="${task.id}">
+          <i class="ti ti-pencil" aria-hidden="true"></i>Edit task details
+        </button>
       </div>
     </div>` : '';
 
@@ -97,11 +107,42 @@ function buildTaskRow(task, { projectName = '', tagNames = [], ctx = '' } = {}) 
 </li>`;
 }
 
-// ── Expand / collapse subtask drawer ──────────────────────────────────────────
+// ── Drawer expand state ───────────────────────────────────────────────────────
+// Tracks which drawers are open across renders so adding a subtask doesn't
+// collapse the drawer the user is working in.
+const _expandedDrawers = new Set();
+
 function toggleSubDrawer(li) {
   const isOpen = li.classList.toggle('sub-expanded');
-  const chev   = li.querySelector('.sub-expand-chev');
+  const id     = li.dataset.id;
+  if (isOpen) _expandedDrawers.add(id);
+  else        _expandedDrawers.delete(id);
+  const chev = li.querySelector('.sub-expand-chev');
   if (chev) chev.style.transform = isOpen ? 'rotate(180deg)' : '';
+}
+
+function restoreExpandedDrawers() {
+  document.querySelectorAll('.task-card').forEach(li => {
+    if (_expandedDrawers.has(li.dataset.id)) {
+      li.classList.add('sub-expanded');
+      const chev = li.querySelector('.sub-expand-chev');
+      if (chev) chev.style.transform = 'rotate(180deg)';
+    }
+  });
+}
+
+// ── Add subtask inline ────────────────────────────────────────────────────────
+let _refocusSubAddTaskId = null; // pass focus through a re-render
+
+async function addSubtaskToTask(taskId, title) {
+  const t = await Tasks.get(taskId);
+  if (!t) return;
+  const newSub = { id: uid(), title: title.trim(), isComplete: false };
+  const subtasks = [...(t.subtasks || []), newSub];
+  await Tasks.update(taskId, { subtasks });
+  _expandedDrawers.add(taskId);  // keep drawer open after re-render
+  _refocusSubAddTaskId = taskId; // re-focus the inline input for chaining
+  renderView();
 }
 
 // ── Toggle a single subtask inline ────────────────────────────────────────────
@@ -197,13 +238,44 @@ function initCardInteractions(li) {
   if ((ctx === 'today' || ctx === 'upcoming') && !isComplete) {
     initDrag(li);
   }
+
+  // Restore expanded state if this drawer was open before a re-render
+  if (_expandedDrawers.has(li.dataset.id)) {
+    li.classList.add('sub-expanded');
+    const chev = li.querySelector('.sub-expand-chev');
+    if (chev) chev.style.transform = 'rotate(180deg)';
+  }
+
+  // Inline "add subtask" input — Enter to commit, focus stays for chaining
+  const addInp = li.querySelector('.sub-add-input');
+  if (addInp) {
+    addInp.addEventListener('keydown', e => {
+      if (e.key !== 'Enter') return;
+      e.preventDefault();
+      const title = addInp.value.trim();
+      if (!title) return;
+      addInp.value = '';
+      addSubtaskToTask(addInp.dataset.taskId, title);
+    });
+    // Stop tap on input from bubbling to the card's expand handler
+    addInp.addEventListener('click', e => e.stopPropagation());
+    // Re-focus after add-driven re-render
+    if (_refocusSubAddTaskId === li.dataset.id) {
+      _refocusSubAddTaskId = null;
+      setTimeout(() => addInp.focus(), 30);
+    }
+  }
 }
 
 // ── Task CRUD actions ─────────────────────────────────────────────────────────
 async function toggleTask(id) {
   const t = await Tasks.get(id);
   if (!t) return;
-  await Tasks.update(id, { isComplete: !t.isComplete });
+  const nowDone = !t.isComplete;
+  await Tasks.update(id, {
+    isComplete: nowDone,
+    completedAt: nowDone ? new Date().toISOString() : null,
+  });
   renderView();
 }
 

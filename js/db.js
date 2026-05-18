@@ -37,6 +37,7 @@ const Tasks = {
       scheduledFor,
       dueDate,
       isComplete: false,
+      completedAt: null, // ISO timestamp set when isComplete flips true
       isRolledOver: false,
       originalDate: null,
       projectId,
