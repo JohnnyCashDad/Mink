@@ -7,9 +7,9 @@ let viewingCompleted = false;
 const TAB_CONFIG = {
   today:    { label: 'Today',    icon: 'ti-sun',       fabAction: () => openCapture({}) },
   upcoming: { label: 'Upcoming', icon: 'ti-calendar',  fabAction: () => openCapture({}) },
+  someday:  { label: 'Someday',  icon: 'ti-inbox',     fabAction: () => openCapture({ asSomeday: true }) },
   projects: { label: 'Projects', icon: 'ti-folder',    fabAction: null }, // set dynamically
   stats:    { label: 'Stats',    icon: 'ti-chart-bar', fabAction: null },
-  someday:  { label: 'Someday',  icon: 'ti-inbox',     fabAction: () => openCapture({ asSomeday: true }) },
 };
 
 // ── Render dispatcher ─────────────────────────────────────────────────────────

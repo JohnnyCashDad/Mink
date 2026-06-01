@@ -1,5 +1,49 @@
 'use strict';
 
+// ── Collapsible "From projects" section ───────────────────────────────────────
+// Project-assigned tasks are grouped into one collapsed section at the bottom of
+// Today / Upcoming / Someday so list-style projects (shopping lists, etc.) don't
+// flood the main view. Collapsed by default; grouped by project inside.
+function projectSectionHTML(projTasks, projMap, tn, ctx) {
+  if (!projTasks.length) return '';
+
+  const byProj = {};
+  projTasks.forEach(t => {
+    const key = t.projectId || '_';
+    (byProj[key] = byProj[key] || []).push(t);
+  });
+
+  const groupsHTML = Object.keys(byProj).map(pid => {
+    const proj  = projMap[pid];
+    const name  = proj?.name || 'Project';
+    const color = proj?.colorHex || 'var(--text-tertiary)';
+    const icon  = proj?.icon || '';
+    const rows  = sortByPriority(byProj[pid])
+      .map(t => buildTaskRow(t, { tagNames: tn(t), ctx })).join('');
+    return `
+<div class="proj-sub-lbl">
+  <span class="proj-sub-icon" style="background:${color}22;color:${color}">${icon}</span>
+  <span class="proj-sub-name">${esc(name)}</span>
+  <span class="proj-sub-count">${byProj[pid].length}</span>
+</div>
+<ul class="task-list">${rows}</ul>`;
+  }).join('');
+
+  return `
+<div class="done-toggle proj-toggle" id="proj-toggle">
+  <span class="done-toggle-lbl"><i class="ti ti-folder" style="margin-right:7px" aria-hidden="true"></i>From projects · ${projTasks.length}</span>
+  <i class="ti ti-chevron-down done-toggle-chev" id="proj-chev" aria-hidden="true"></i>
+</div>
+<div id="proj-list">${groupsHTML}</div>`;
+}
+
+function _bindProjectSection() {
+  document.getElementById('proj-toggle')?.addEventListener('click', () => {
+    document.getElementById('proj-list')?.classList.toggle('open');
+    document.getElementById('proj-chev')?.classList.toggle('open');
+  });
+}
+
 // ── Today view ────────────────────────────────────────────────────────────────
 async function renderToday() {
   const content = document.getElementById('app-content');
@@ -11,16 +55,18 @@ async function renderToday() {
   const tn      = t => (t.tagIds || []).map(id => tagMap[id]).filter(Boolean);
 
   const todayTasks = allTasks.filter(t => t.scheduledFor === today);
-  const rolled     = sortByPriority(todayTasks.filter(t => !t.isComplete &&  t.isRolledOver));
-  const active     = sortByPriority(todayTasks.filter(t => !t.isComplete && !t.isRolledOver));
+  const open       = todayTasks.filter(t => !t.isComplete);
+  const rolled     = sortByPriority(open.filter(t => !t.projectId &&  t.isRolledOver));
+  const active     = sortByPriority(open.filter(t => !t.projectId && !t.isRolledOver));
+  const projOpen   = open.filter(t => t.projectId);
   const completed  = todayTasks.filter(t => t.isComplete);
 
-  const totalOpen = rolled.length + active.length;
+  const totalOpen = open.length;
   const totalAll  = totalOpen + completed.length;
   const doneCount = completed.length;
 
-  const highCount   = [...rolled, ...active].filter(t => t.priority === 'high').length;
-  const rolledCount = rolled.length;
+  const highCount   = open.filter(t => t.priority === 'high').length;
+  const rolledCount = open.filter(t => t.isRolledOver).length;
   const offset      = ringOffset(doneCount, totalAll);
   const digestHour  = getDigestHour();
 
@@ -69,15 +115,16 @@ async function renderToday() {
     if (rolled.length) {
       listsHTML += `<div class="section-lbl">Rolled Over</div>
         <ul class="task-list" id="rolled-list">
-          ${rolled.map(t => buildTaskRow(t, { projectName: projMap[t.projectId]?.name || '', tagNames: tn(t), ctx: 'today' })).join('')}
+          ${rolled.map(t => buildTaskRow(t, { tagNames: tn(t), ctx: 'today' })).join('')}
         </ul>`;
     }
     if (active.length) {
       listsHTML += `<div class="section-lbl">Today</div>
         <ul class="task-list" id="active-list">
-          ${active.map(t => buildTaskRow(t, { projectName: projMap[t.projectId]?.name || '', tagNames: tn(t), ctx: 'today' })).join('')}
+          ${active.map(t => buildTaskRow(t, { tagNames: tn(t), ctx: 'today' })).join('')}
         </ul>`;
     }
+    listsHTML += projectSectionHTML(projOpen, projMap, tn, 'today');
     // Completed tasks live in the dedicated Completed view (top-right button)
   }
 
@@ -96,6 +143,7 @@ function _bindToday() {
 
   document.getElementById('hero-gear-btn')?.addEventListener('click', openSettings);
   document.getElementById('digest-pill')?.addEventListener('click', openSettings);
+  _bindProjectSection();
 
   document.querySelectorAll('.task-card').forEach(initCardInteractions);
   _bindTaskDelegation(document.getElementById('app-content'));
@@ -113,6 +161,8 @@ async function renderUpcoming() {
   const tn      = t => (t.tagIds || []).map(id => tagMap[id]).filter(Boolean);
 
   const upcoming = allTasks.filter(t => !t.isComplete && !isSomeday(t) && t.scheduledFor > today);
+  const upNonProj = upcoming.filter(t => !t.projectId);
+  const upProj    = upcoming.filter(t =>  t.projectId);
 
   let html = `<div class="page-header">Upcoming</div>
   <div class="search-bar" style="margin-bottom:8px">
@@ -124,19 +174,21 @@ async function renderUpcoming() {
     html += emptyState('Nothing coming up', 'Schedule tasks with a future date', 'ti-calendar');
   } else {
     const groups = {};
-    upcoming.forEach(t => { (groups[t.scheduledFor] = groups[t.scheduledFor] || []).push(t); });
+    upNonProj.forEach(t => { (groups[t.scheduledFor] = groups[t.scheduledFor] || []).push(t); });
     Object.keys(groups).sort().forEach(ds => {
       const d     = new Date(ds + 'T00:00:00');
       const label = ds === tom ? 'Tomorrow'
                   : d.toLocaleDateString(undefined, { weekday:'long', month:'long', day:'numeric' });
       html += `<div class="section-lbl">${esc(label)}</div>
         <ul class="task-list">
-          ${sortByPriority(groups[ds]).map(t => buildTaskRow(t, { projectName: projMap[t.projectId]?.name || '', tagNames: tn(t), ctx: 'upcoming' })).join('')}
+          ${sortByPriority(groups[ds]).map(t => buildTaskRow(t, { tagNames: tn(t), ctx: 'upcoming' })).join('')}
         </ul>`;
     });
+    html += projectSectionHTML(upProj, projMap, tn, 'upcoming');
   }
 
   content.innerHTML = html;
+  _bindProjectSection();
   document.querySelectorAll('.task-card').forEach(initCardInteractions);
   _bindTaskDelegation(content);
   document.getElementById('search-inp')?.addEventListener('input', function() {
@@ -391,18 +443,24 @@ async function renderSomeday() {
   const projMap = Object.fromEntries(allProjects.map(p => [p.id, p]));
   const tagMap  = Object.fromEntries(allTags.map(t => [t.id, t.name]));
   const tn      = t => (t.tagIds || []).map(id => tagMap[id]).filter(Boolean);
-  const someday = sortByPriority(allTasks.filter(t => !t.isComplete && isSomeday(t)));
+  const somedayAll  = allTasks.filter(t => !t.isComplete && isSomeday(t));
+  const someday     = sortByPriority(somedayAll.filter(t => !t.projectId));
+  const somedayProj = somedayAll.filter(t => t.projectId);
 
   let html = `<div class="page-header">Someday</div>`;
-  if (!someday.length) {
+  if (!somedayAll.length) {
     html += emptyState('Backlog is clear', 'Tasks with no date live here', 'ti-inbox');
   } else {
-    html += `<div class="someday-count">${someday.length} task${someday.length === 1 ? '' : 's'} parked</div>
-      <ul class="task-list">
-        ${someday.map(t => buildTaskRow(t, { projectName: projMap[t.projectId]?.name || '', tagNames: tn(t), ctx: 'someday' })).join('')}
+    html += `<div class="someday-count">${somedayAll.length} task${somedayAll.length === 1 ? '' : 's'} parked</div>`;
+    if (someday.length) {
+      html += `<ul class="task-list">
+        ${someday.map(t => buildTaskRow(t, { tagNames: tn(t), ctx: 'someday' })).join('')}
       </ul>`;
+    }
+    html += projectSectionHTML(somedayProj, projMap, tn, 'someday');
   }
   content.innerHTML = html;
+  _bindProjectSection();
   document.querySelectorAll('.task-card').forEach(initCardInteractions);
   _bindTaskDelegation(content);
 }
